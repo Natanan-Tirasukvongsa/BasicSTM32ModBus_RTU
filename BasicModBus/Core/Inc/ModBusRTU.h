@@ -14,9 +14,26 @@ typedef struct _ModbusHandleTypedef
 	uint16_t *RegisterAddress;
 	UART_HandleTypeDef* huart;
 	TIM_HandleTypeDef* htim;
+	uint8_t T15TimeOutFlag;
+	uint8_t T35TimeOutFlag;
+
+
+
+	uint8_t MessageBufferRx;
+	uint8_t MessageBufferTx;
+
+
 
 }ModbusHandleTypedef;
 
+typedef enum _ModbusState
+{
+	Modbus_state_Init,
+	Modbus_state_Idle,
+	Modbus_state_Emission,
+	Modbus_state_Reception,
+	Modbus_state_ControlAndWaiting
+};
 
 typedef enum _modbusFunctioncode
 {

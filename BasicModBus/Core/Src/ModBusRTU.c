@@ -19,7 +19,7 @@ void modbus_3t5_Timeout(TIM_HandleTypeDef *htim)
 }
 void modbus_UART_Recived(UART_HandleTypeDef *huart)
 {
-
+	//restart timer / start timer of counting time with modbus RTU
 }
 void Modbus_init(ModbusHandleTypedef* hmodbus,uint16_t* RegisterStartAddress)
 {
@@ -30,4 +30,12 @@ void Modbus_init(ModbusHandleTypedef* hmodbus,uint16_t* RegisterStartAddress)
 
 }
 
+void Modbus_Protocal_Worker()
+{
 
+}
+
+void Modbus_Return_Massage()
+{
+
+}
