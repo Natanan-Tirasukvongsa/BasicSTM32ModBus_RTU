@@ -33,7 +33,7 @@ typedef enum _ModbusState
 	Modbus_state_Emission,
 	Modbus_state_Reception,
 	Modbus_state_ControlAndWaiting
-};
+}ModbusStateTypedef;
 
 typedef enum _modbusFunctioncode
 {
