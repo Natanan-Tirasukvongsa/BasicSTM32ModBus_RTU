@@ -26,7 +26,7 @@ void modbus_UART_Recived(UART_HandleTypeDef *huart)
 	__HAL_TIM_SET_COUNTER(hModbus->htim,0);
 	if(hModbus->htim->State == HAL_TIM_STATE_READY)
 	{
-
+		HAL_TIM_OnePulse_Start_it(&hModbus, TIM_CHANNEL_1);
 	}
 }
 void Modbus_init(ModbusHandleTypedef* hmodbus,uint16_t* RegisterStartAddress)
