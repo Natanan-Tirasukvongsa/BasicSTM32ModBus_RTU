@@ -8,23 +8,8 @@
 #ifndef INC_MODBUSRTU_H_
 #define INC_MODBUSRTU_H_
 #include "stm32f4xx_hal.h"
-//Modbus Handle structure
-typedef struct _ModbusHandleTypedef
-{
-	uint16_t *RegisterAddress;
-	UART_HandleTypeDef* huart;
-	TIM_HandleTypeDef* htim;
-	uint8_t T15TimeOutFlag;
-	uint8_t T35TimeOutFlag;
-
-
-
-	uint8_t MessageBufferRx;
-	uint8_t MessageBufferTx;
-
-
-
-}ModbusHandleTypedef;
+#define MODBUS_MESSAGEBUFFER_SIZE 300
+#define MODBUS_SLAVE_ID 1
 
 typedef enum _ModbusState
 {
@@ -51,5 +36,53 @@ typedef enum _modbusFunctioncode
 
 }ModbusFunctionCode;
 
+typedef enum _modbusRecvFrameStatus
+{
+	Modbus_RecvFrame_Null = -2,
+	Modbus_RecvFrame_FrameError = -1,
+	Modbus_RecvFrame_Normal = 0,
+	Modbus_RecvFrame_IllegalFunction,
+	Modbus_RecvFrame_IllegalDataAddress,
+	Modbus_RecvFrame_IllegalDataValue,
+	Modbus_RecvFrame_SlaveDeviceFailure,
+	Modbus_RecvFrame_Acknowlage,
+	Modbus_RecvFrame_SlaveDeviceBusy,
+	Modbus_RecvFrame_NegativeAcknowage,
+	Modbus_RecvFrame_MemoryParityError,
+	Modbus_RecvFrame_GatewayTargetDeviceFailedToRespon
+}modbusRecvFrameStatus;
+
+//Modbus Handle structure
+typedef struct _ModbusHandleTypedef
+{
+	uint16_t *RegisterAddress;
+	UART_HandleTypeDef* huart;
+	TIM_HandleTypeDef* htim;
+
+	uint8_t Flag_T15TimeOut;
+	uint8_t Flag_T35TimeOut;
+	uint8_t Flag_URev;
+	uint8_t Flag_ETx;
+
+	modbusRecvFrameStatus RecvStatus;
+
+
+	ModbusStateTypedef Mstatus;
+
+	uint8_t Rxframe[256];
+	uint8_t Txframe[256];
+
+	struct _modbusUartStructure
+	{
+	uint8_t MessageBufferRx[MODBUS_MESSAGEBUFFER_SIZE];
+	uint16_t RxTail;
+
+
+	uint8_t MessageBufferTx[MODBUS_MESSAGEBUFFER_SIZE];
+	uint16_t TxTail;
+	} modbusUartStructure;
+
+
+}ModbusHandleTypedef;
 
 #endif /* INC_MODBUSRTU_H_ */
