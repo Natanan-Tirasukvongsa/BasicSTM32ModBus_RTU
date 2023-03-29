@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ModBusRTU.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +47,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-
+ModbusHandleTypedef hmodbus;
+uint8_t registerFrame[200];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,13 +100,16 @@ int main(void)
   MX_TIM11_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
+  hmodbus.huart = &huart2;
+  hmodbus.htim = &htim3;
+  Modbus_init(&hmodbus, registerFrame);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  Modbus_Protocal_Worker();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

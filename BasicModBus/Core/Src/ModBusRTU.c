@@ -6,7 +6,17 @@
  */
 #include "ModBusRTU.h"
 
+typedef union
+{
+	uint16_t U16;
+	uint8_t U8[2];
+}u16u8_t;
+#define MODBUS_UART_BUFFER_SIZE 300
+
 ModbusHandleTypedef* hModbus;
+
+
+
 //end of packet
 void modbus_1t5_Timeout(TIM_HandleTypeDef *htim)
 {
@@ -36,7 +46,9 @@ void Modbus_init(ModbusHandleTypedef* hmodbus,uint16_t* RegisterStartAddress)
 	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_OC_DELAY_ELAPSED_CB_ID,(void*)modbus_1t5_Timeout);
 	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_PERIOD_ELAPSED_CB_ID ,(void*)modbus_3t5_Timeout);
 	hModbus->RegisterAddress = RegisterStartAddress;
-    HAL_UART_RegisterCallback(hModbus->huart,HAL_UART_RX_COMPLETE_CB_ID,(void*)modbus_UART_Recived);
+    HAL_UART_RegisterCallback(hModbus->huart,HAL_UART_,(void*)modbus_UART_Recived);
+
+    HAL_UART_Receive_DMA(hModbus->huart, hmodbus->modbusUartStructure.MessageBufferRx, MODBUS_UART_BUFFER_SIZE);
 
 }
 /* Table of CRC values for low–order byte */
@@ -156,13 +168,27 @@ void Modbus_Protocal_Worker()
 		{
 			hModbus->RecvStatus = Modbus_RecvFrame_Normal;
 
-			CRC16(hModbus->modbusUartStructure.MessageBufferRx,hModbus->modbusUartStructure.RxTail - 2);
+			u16u8_t CalculateCRC;
+			CalculateCRC.U16 = CRC16(hModbus->modbusUartStructure.MessageBufferRx,hModbus->modbusUartStructure.RxTail - 2);
+
+			if(!(CalculateCRC.U8[0] == hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail - 1]
+			&& CalculateCRC.U8[1] == hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail ]))
+			{
+				// communication unsuccessful
+				break;
+			}
+
+			// calculate response
+
+			//add response feedback
 
 		}
 
 		if(hModbus->Flag_T35TimeOut)
 		{
 			hModbus->Mstatus = Modbus_state_Idle;
+			HAL_UART_AbortReceive(hModbus->huart);
+
 		}
 
 		break;
