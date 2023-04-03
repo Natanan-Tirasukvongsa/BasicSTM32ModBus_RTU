@@ -8,6 +8,7 @@
 #ifndef INC_MODBUSRTU_H_
 #define INC_MODBUSRTU_H_
 #include "stm32f4xx_hal.h"
+#include "string.h"
 #define MODBUS_MESSAGEBUFFER_SIZE 300
 #define MODBUS_SLAVE_ID 1
 
@@ -55,6 +56,8 @@ typedef enum _modbusRecvFrameStatus
 //Modbus Handle structure
 typedef struct _ModbusHandleTypedef
 {
+	uint8_t slaveAddress;
+
 	uint16_t *RegisterAddress;
 	UART_HandleTypeDef* huart;
 	TIM_HandleTypeDef* htim;

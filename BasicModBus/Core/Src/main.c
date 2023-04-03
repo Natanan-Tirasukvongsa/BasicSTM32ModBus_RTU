@@ -101,7 +101,8 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   hmodbus.huart = &huart2;
-  hmodbus.htim = &htim3;
+  hmodbus.htim = &htim11;
+  hmodbus.slaveAddress = 0x15;
   Modbus_init(&hmodbus, registerFrame);
   /* USER CODE END 2 */
 
@@ -273,7 +274,7 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 19200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.WordLength = UART_WORDLENGTH_9B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_EVEN;
   huart2.Init.Mode = UART_MODE_TX_RX;

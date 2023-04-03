@@ -1,7 +1,8 @@
-ModBusRTU.c:21:6:modbus_1t5_Timeout	1
-ModBusRTU.c:27:6:modbus_3t5_Timeout	1
-ModBusRTU.c:32:6:modbus_UART_Recived	2
-ModBusRTU.c:43:6:Modbus_init	1
-ModBusRTU.c:98:16:CRC16	2
-ModBusRTU.c:116:6:Modbus_Protocal_Worker	13
-ModBusRTU.c:200:6:Modbus_Return_Massage	1
+ModBusRTU.c:20:6:modbus_1t5_Timeout	1
+ModBusRTU.c:26:6:modbus_3t5_Timeout	1
+ModBusRTU.c:31:6:modbus_UART_Recived	2
+ModBusRTU.c:45:6:Modbus_init	2
+ModBusRTU.c:107:16:CRC16	2
+ModBusRTU.c:125:6:Modbus_Protocal_Worker	18
+ModBusRTU.c:285:6:modbusWrite1Register	1
+ModBusRTU.c:305:6:Modbus_frame_response	2
