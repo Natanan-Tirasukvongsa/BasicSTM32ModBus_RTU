@@ -11,7 +11,11 @@
 #include "string.h"
 #define MODBUS_MESSAGEBUFFER_SIZE 300
 #define MODBUS_SLAVE_ID 1
-
+typedef union
+{
+	uint16_t U16;
+	uint8_t U8[2];
+}u16u8_t;
 typedef enum _ModbusState
 {
 	Modbus_state_Init,
@@ -58,7 +62,7 @@ typedef struct _ModbusHandleTypedef
 {
 	uint8_t slaveAddress;
 
-	uint16_t *RegisterAddress;
+	u16u8_t *RegisterAddress;
 	UART_HandleTypeDef* huart;
 	TIM_HandleTypeDef* htim;
 

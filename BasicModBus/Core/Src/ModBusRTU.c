@@ -6,11 +6,7 @@
  */
 #include "ModBusRTU.h"
 
-typedef union
-{
-	uint16_t U16;
-	uint8_t U8[2];
-}u16u8_t;
+
 #define MODBUS_UART_BUFFER_SIZE 300
 
 ModbusHandleTypedef* hModbus;
@@ -42,7 +38,7 @@ void modbus_UART_Recived(UART_HandleTypeDef *huart,uint32_t pos)
 	__HAL_TIM_SET_COUNTER(hModbus->htim,0);
 
 }
-void Modbus_init(ModbusHandleTypedef* hmodbus,uint16_t* RegisterStartAddress)
+void Modbus_init(ModbusHandleTypedef* hmodbus,u16u8_t* RegisterStartAddress)
 {
 	hModbus = hmodbus;
 	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_OC_DELAY_ELAPSED_CB_ID,(void*)modbus_1t5_Timeout);
@@ -286,9 +282,10 @@ void modbusWrite1Register()
 {
 	//TODO : This is NOT safe Memory access
 	//write data to register
-	hModbus->RegisterAddress[
-	((hModbus->Rxframe[1]<<8)+(hModbus->Rxframe[2]))]
-	= (hModbus->Rxframe[3]<<8)+(hModbus->Rxframe[4]);
+	uint16_t startAddress = (hModbus->Rxframe[1]<<8)+(hModbus->Rxframe[2]);
+
+	hModbus->RegisterAddress[startAddress].U8[0] = hModbus->Rxframe[3];
+	hModbus->RegisterAddress[startAddress].U8[1] = hModbus->Rxframe[4];
 
 	//TODO: need error checking
 
@@ -302,12 +299,34 @@ void modbusWrite1Register()
 
 
 }
+
+void modbusRead1Register()
+{
+	//TODO:Check range
+	uint16_t numberOfDataToRead =((hModbus->Rxframe[3]<<8)+(hModbus->Rxframe[4]));
+	uint16_t startAddress =((hModbus->Rxframe[1]<<8)+(hModbus->Rxframe[2]));
+	//generate response
+	hModbus->Txframe[1] = Modbus_function_Read_Holding_Register;
+	hModbus->Txframe[2] = (2*numberOfDataToRead) & 0xFF;
+	register int i;
+	for(i=0; i<numberOfDataToRead;i++)
+	{
+		hModbus->Txframe[2*i+3]=hModbus->RegisterAddress[startAddress+i].U8[0];
+		hModbus->Txframe[2*i+4]=hModbus->RegisterAddress[startAddress+i].U8[1];
+	}
+	hModbus->Txframe[0] = 2+2*numberOfDataToRead;
+
+}
+
 void Modbus_frame_response()
 {
 	switch(hModbus->Rxframe[0]) //check funcion
 	{
 	case Modbus_function_Write_SingleRegister:
 		modbusWrite1Register();
+		break;
+	case Modbus_function_Read_Holding_Register:
+		modbusRead1Register();
 		break;
 	}
 }

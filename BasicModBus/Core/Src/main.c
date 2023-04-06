@@ -48,7 +48,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 ModbusHandleTypedef hmodbus;
-uint8_t registerFrame[200];
+u16u8_t registerFrame[200];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
