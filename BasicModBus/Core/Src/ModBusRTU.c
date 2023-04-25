@@ -140,7 +140,7 @@ void Modbus_Protocal_Worker()
 		/*Idle state*/
 
 		//check that we have response message
-		if(hModbus->Txframe[0])
+		if(hModbus->TxCount)
 		{
 			 Modbus_Emission();
 		}
@@ -235,7 +235,7 @@ void Modbus_Protocal_Worker()
 	case Modbus_state_Emission:
 		if(hModbus->huart->gState==HAL_UART_STATE_READY)
 					{
-			hModbus->Txframe[0]=0;
+			hModbus->TxCount=0;
 			hModbus->Mstatus = Modbus_state_Idle;
 					}
 		break;
@@ -262,11 +262,11 @@ void modbusWrite1Register() //function 06
 
 
 	//generate response
-	memcpy(hModbus->Txframe+1,
+	memcpy(hModbus->Txframe,
 			hModbus->Rxframe,
 			8);
 	//set number of byte to sent
-	hModbus->Txframe[0]=5;
+	hModbus->TxCount=5;
 
 
 
@@ -296,23 +296,23 @@ void modbusRead1Register() // function 03
 
 
 	//generate response
-	hModbus->Txframe[1] = Modbus_function_Read_Holding_Register;
-	hModbus->Txframe[2] = (2*numberOfDataToRead) & 0xFF;
+	hModbus->Txframe[0] = Modbus_function_Read_Holding_Register;
+	hModbus->Txframe[1] = (2*numberOfDataToRead) & 0xFF;
 	register int i;
 	for(i=0; i<numberOfDataToRead;i++)
 	{
-		hModbus->Txframe[2*i+3]=hModbus->RegisterAddress[startAddress+i].U8[1];
-		hModbus->Txframe[2*i+4]=hModbus->RegisterAddress[startAddress+i].U8[0];
+		hModbus->Txframe[2*i+2]=hModbus->RegisterAddress[startAddress+i].U8[1];
+		hModbus->Txframe[2*i+3]=hModbus->RegisterAddress[startAddress+i].U8[0];
 	}
-	hModbus->Txframe[0] = 2+2*numberOfDataToRead;
+	hModbus->TxCount = 2+2*numberOfDataToRead;
 
 }
 
 void ModbusErrorReply(uint8_t Errorcode)
 {
-	hModbus->Txframe[1] = Modbus_function_Read_Holding_Register | 0x80;
-	hModbus->Txframe[2] = Errorcode;
-	hModbus->Txframe[0] = 2;
+	hModbus->Txframe[0] = Modbus_function_Read_Holding_Register | 0x80;
+	hModbus->Txframe[1] = Errorcode;
+	hModbus->TxCount = 2;
 }
 
 void Modbus_frame_response()
@@ -342,11 +342,11 @@ void Modbus_Emission()
 		memcpy
 		(
 				hModbus->modbusUartStructure.MessageBufferTx+1,
-				hModbus->Txframe+1,
-				hModbus->Txframe[0]
+				hModbus->Txframe,
+				hModbus->TxCount
 		);
 
-		hModbus->modbusUartStructure.TxTail = hModbus->Txframe[0]+3;
+		hModbus->modbusUartStructure.TxTail = hModbus->TxCount+3;
 
 		u16u8_t CalculateCRC;
 		CalculateCRC.U16 = CRC16(hModbus->modbusUartStructure.MessageBufferTx,

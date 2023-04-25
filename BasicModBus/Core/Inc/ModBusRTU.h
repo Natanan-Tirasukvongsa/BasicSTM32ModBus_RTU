@@ -70,10 +70,12 @@ typedef struct _ModbusHandleTypedef
 
 	TIM_HandleTypeDef* htim; // timer period = 3.5t , OC1 pulse =2.5t ,Enable ONE pulse mode , Enable Interrupt ,Register callback Enable
 
+	//flag
 	uint8_t Flag_T15TimeOut;
 	uint8_t Flag_T35TimeOut;
 	uint8_t Flag_URev;
 	uint8_t Flag_ETx;
+
 
 	modbusRecvFrameStatus RecvStatus;
 
@@ -83,7 +85,7 @@ typedef struct _ModbusHandleTypedef
 	//PDU frame
 	uint8_t Rxframe[MODBUS_MESSAGEBUFFER_SIZE];
 	uint8_t Txframe[MODBUS_MESSAGEBUFFER_SIZE];
-
+	uint8_t TxCount;
 	//Serial frame
 	struct _modbusUartStructure
 	{
