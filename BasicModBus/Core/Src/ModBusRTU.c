@@ -11,8 +11,16 @@
 
 ModbusHandleTypedef* hModbus;
 
+void modbus_1t5_Timeout(TIM_HandleTypeDef *htim);
+void modbus_3t5_Timeout(TIM_HandleTypeDef *htim);
+void Modbus_Emission();
+void modbusWrite1Register(); //function 06
+void modbusRead1Register(); // function 03
+void ModbusErrorReply(uint8_t);
+void Modbus_frame_response();
 
-//end of packet
+
+
 void modbus_1t5_Timeout(TIM_HandleTypeDef *htim)
 {
 	//end of package flag set
@@ -134,60 +142,17 @@ void Modbus_Protocal_Worker()
 		//check that we have response message
 		if(hModbus->Txframe[0])
 		{
-			if(hModbus->huart->gState=HAL_UART_STATE_READY)
-			{
-			//generate response package
-			hModbus->modbusUartStructure.MessageBufferTx[0] = hModbus->slaveAddress;
-			memcpy
-				(
-					hModbus->modbusUartStructure.MessageBufferTx+1,
-					hModbus->Txframe+1,
-					hModbus->Txframe[0]
-				);
-
-			hModbus->modbusUartStructure.TxTail = hModbus->Txframe[0]+3;
-
-			u16u8_t CalculateCRC;
-			CalculateCRC.U16 = CRC16(hModbus->modbusUartStructure.MessageBufferTx,
-					hModbus->modbusUartStructure.TxTail - 2);
-
-			hModbus->modbusUartStructure.MessageBufferTx[hModbus->modbusUartStructure.TxTail-2]
-					=CalculateCRC.U8[0];
-
-			hModbus->modbusUartStructure.MessageBufferTx[hModbus->modbusUartStructure.TxTail-1]
-					=CalculateCRC.U8[1];
-
-
-			//sent modbus
-
-			if(hModbus->huart->gState==HAL_UART_STATE_READY)
-			{
-				HAL_UART_Transmit_DMA(hModbus->huart
-						,hModbus->modbusUartStructure.MessageBufferTx
-						,hModbus->modbusUartStructure.TxTail);
-			}
-
-
-
-
-			}
-			/*reset Timer flag*/
-			hModbus->Flag_T15TimeOut = 0;
-			hModbus->Flag_T35TimeOut = 0;
-			hModbus->Flag_URev =0;
-			/*set state*/
-			hModbus->Mstatus= Modbus_state_Emission;
-
+			 Modbus_Emission();
 		}
 
+		//check that if UART RX not start, start receiving
 		else if(hModbus->huart->RxState == HAL_UART_STATE_READY)
 		{
 			hModbus->modbusUartStructure.RxTail =0;
 			HAL_UART_Receive_IT(hModbus->huart, &(hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail]), 1);
-
-
 		}
-		// recived character
+
+		// Received character
 		else if(hModbus->Flag_URev)
 		{
 			/*reset Timer flag*/
@@ -278,16 +243,23 @@ void Modbus_Protocal_Worker()
 
 	}
 }
-void modbusWrite1Register()
+void modbusWrite1Register() //function 06
 {
-	//TODO : This is NOT safe Memory access
+
 	//write data to register
 	uint16_t startAddress = (hModbus->Rxframe[1]<<8)+(hModbus->Rxframe[2]);
 
-	hModbus->RegisterAddress[startAddress].U8[0] = hModbus->Rxframe[3];
-	hModbus->RegisterAddress[startAddress].U8[1] = hModbus->Rxframe[4];
+	if(startAddress > hModbus->RegisterSize)
+		{
+			 ModbusErrorReply(Modbus_RecvFrame_IllegalDataAddress);
+			 return;
+		}
 
-	//TODO: need error checking
+
+	hModbus->RegisterAddress[startAddress].U8[1] = hModbus->Rxframe[3];
+	hModbus->RegisterAddress[startAddress].U8[0] = hModbus->Rxframe[4];
+
+
 
 	//generate response
 	memcpy(hModbus->Txframe+1,
@@ -300,22 +272,47 @@ void modbusWrite1Register()
 
 }
 
-void modbusRead1Register()
+void modbusRead1Register() // function 03
 {
-	//TODO:Check range
+
+
+
 	uint16_t numberOfDataToRead =((hModbus->Rxframe[3]<<8)+(hModbus->Rxframe[4]));
 	uint16_t startAddress =((hModbus->Rxframe[1]<<8)+(hModbus->Rxframe[2]));
+
+	//check quantity and address range
+
+	if(numberOfDataToRead <1 ||numberOfDataToRead > 0x7D)
+	{
+		 ModbusErrorReply(Modbus_RecvFrame_IllegalDataValue);
+		 return;
+	}
+
+	if(startAddress > hModbus->RegisterSize || (startAddress +  numberOfDataToRead) > hModbus->RegisterSize)
+	{
+		 ModbusErrorReply(Modbus_RecvFrame_IllegalDataAddress);
+		 return;
+	}
+
+
 	//generate response
 	hModbus->Txframe[1] = Modbus_function_Read_Holding_Register;
 	hModbus->Txframe[2] = (2*numberOfDataToRead) & 0xFF;
 	register int i;
 	for(i=0; i<numberOfDataToRead;i++)
 	{
-		hModbus->Txframe[2*i+3]=hModbus->RegisterAddress[startAddress+i].U8[0];
-		hModbus->Txframe[2*i+4]=hModbus->RegisterAddress[startAddress+i].U8[1];
+		hModbus->Txframe[2*i+3]=hModbus->RegisterAddress[startAddress+i].U8[1];
+		hModbus->Txframe[2*i+4]=hModbus->RegisterAddress[startAddress+i].U8[0];
 	}
 	hModbus->Txframe[0] = 2+2*numberOfDataToRead;
 
+}
+
+void ModbusErrorReply(uint8_t Errorcode)
+{
+	hModbus->Txframe[1] = Modbus_function_Read_Holding_Register | 0x80;
+	hModbus->Txframe[2] = Errorcode;
+	hModbus->Txframe[0] = 2;
 }
 
 void Modbus_frame_response()
@@ -328,6 +325,58 @@ void Modbus_frame_response()
 	case Modbus_function_Read_Holding_Register:
 		modbusRead1Register();
 		break;
+	default:
+		 ModbusErrorReply(Modbus_RecvFrame_IllegalFunction);
+		break;
+
 	}
+}
+
+void Modbus_Emission()
+{
+	if(hModbus->huart->gState==HAL_UART_STATE_READY)
+	{
+		//generate response package
+		hModbus->modbusUartStructure.MessageBufferTx[0] = hModbus->slaveAddress;
+
+		memcpy
+		(
+				hModbus->modbusUartStructure.MessageBufferTx+1,
+				hModbus->Txframe+1,
+				hModbus->Txframe[0]
+		);
+
+		hModbus->modbusUartStructure.TxTail = hModbus->Txframe[0]+3;
+
+		u16u8_t CalculateCRC;
+		CalculateCRC.U16 = CRC16(hModbus->modbusUartStructure.MessageBufferTx,
+				hModbus->modbusUartStructure.TxTail - 2);
+
+		hModbus->modbusUartStructure.MessageBufferTx[hModbus->modbusUartStructure.TxTail-2]
+													 =CalculateCRC.U8[0];
+
+		hModbus->modbusUartStructure.MessageBufferTx[hModbus->modbusUartStructure.TxTail-1]
+													 =CalculateCRC.U8[1];
+
+
+		//sent modbus
+
+		if(hModbus->huart->gState==HAL_UART_STATE_READY)
+		{
+			HAL_UART_Transmit_DMA(hModbus->huart
+					,hModbus->modbusUartStructure.MessageBufferTx
+					,hModbus->modbusUartStructure.TxTail);
+		}
+
+
+
+
+	}
+	/*reset Timer flag*/
+	hModbus->Flag_T15TimeOut = 0;
+	hModbus->Flag_T35TimeOut = 0;
+	hModbus->Flag_URev =0;
+	/*set state*/
+	hModbus->Mstatus= Modbus_state_Emission;
 }
 

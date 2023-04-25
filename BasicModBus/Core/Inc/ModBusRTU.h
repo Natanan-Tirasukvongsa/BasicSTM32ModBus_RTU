@@ -10,7 +10,6 @@
 #include "stm32f4xx_hal.h"
 #include "string.h"
 #define MODBUS_MESSAGEBUFFER_SIZE 300
-#define MODBUS_SLAVE_ID 1
 typedef union
 {
 	uint16_t U16;
@@ -62,9 +61,14 @@ typedef struct _ModbusHandleTypedef
 {
 	uint8_t slaveAddress;
 
+	//Register
 	u16u8_t *RegisterAddress;
-	UART_HandleTypeDef* huart;
-	TIM_HandleTypeDef* htim;
+	uint32_t RegisterSize;
+
+
+	UART_HandleTypeDef* huart; // 19200 8E1 , Enable Interrupt ,Register callback Enable
+
+	TIM_HandleTypeDef* htim; // timer period = 3.5t , OC1 pulse =2.5t ,Enable ONE pulse mode , Enable Interrupt ,Register callback Enable
 
 	uint8_t Flag_T15TimeOut;
 	uint8_t Flag_T35TimeOut;
@@ -74,22 +78,25 @@ typedef struct _ModbusHandleTypedef
 	modbusRecvFrameStatus RecvStatus;
 
 
-	ModbusStateTypedef Mstatus;
+	ModbusStateTypedef Mstatus; //Modbus state (for state machine)
 
-	uint8_t Rxframe[256];
-	uint8_t Txframe[256];
+	//PDU frame
+	uint8_t Rxframe[MODBUS_MESSAGEBUFFER_SIZE];
+	uint8_t Txframe[MODBUS_MESSAGEBUFFER_SIZE];
 
+	//Serial frame
 	struct _modbusUartStructure
 	{
-	uint8_t MessageBufferRx[MODBUS_MESSAGEBUFFER_SIZE];
+	uint8_t MessageBufferRx[MODBUS_MESSAGEBUFFER_SIZE+3];
 	uint16_t RxTail;
-
-
-	uint8_t MessageBufferTx[MODBUS_MESSAGEBUFFER_SIZE];
+	uint8_t MessageBufferTx[MODBUS_MESSAGEBUFFER_SIZE+3];
 	uint16_t TxTail;
 	} modbusUartStructure;
 
 
 }ModbusHandleTypedef;
+
+void Modbus_init(ModbusHandleTypedef* ,u16u8_t*);
+void Modbus_Protocal_Worker();
 
 #endif /* INC_MODBUSRTU_H_ */
