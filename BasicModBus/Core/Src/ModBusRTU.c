@@ -20,7 +20,7 @@ void ModbusErrorReply(uint8_t);
 void Modbus_frame_response();
 
 
-
+// function for interrupt
 void modbus_1t5_Timeout(TIM_HandleTypeDef *htim)
 {
 	//end of package flag set
@@ -46,16 +46,23 @@ void modbus_UART_Recived(UART_HandleTypeDef *huart,uint32_t pos)
 	__HAL_TIM_SET_COUNTER(hModbus->htim,0);
 
 }
+
+
 void Modbus_init(ModbusHandleTypedef* hmodbus,u16u8_t* RegisterStartAddress)
 {
 	hModbus = hmodbus;
-	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_OC_DELAY_ELAPSED_CB_ID,(void*)modbus_1t5_Timeout);
-	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_PERIOD_ELAPSED_CB_ID ,(void*)modbus_3t5_Timeout);
+
 	hModbus->RegisterAddress = RegisterStartAddress;
 
-	HAL_UART_RegisterCallback(hModbus->huart,HAL_UART_RX_COMPLETE_CB_ID,(void*)modbus_UART_Recived);
+	//config timer interrupt
+	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_OC_DELAY_ELAPSED_CB_ID,(void*)modbus_1t5_Timeout);
+	HAL_TIM_RegisterCallback(hModbus->htim,HAL_TIM_PERIOD_ELAPSED_CB_ID ,(void*)modbus_3t5_Timeout);
 
+	//config UART interrupt
+	HAL_UART_RegisterCallback(hModbus->huart,HAL_UART_RX_COMPLETE_CB_ID,(void*)modbus_UART_Recived);
+	//start Receive
     HAL_UART_Receive_IT(hModbus->huart, &(hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail]), 1);
+
 
     if(hModbus->htim->State == HAL_TIM_STATE_READY)
     	{
@@ -142,14 +149,7 @@ void Modbus_Protocal_Worker()
 		//check that we have response message
 		if(hModbus->TxCount)
 		{
-			 Modbus_Emission();
-		}
-
-		//check that if UART RX not start, start receiving
-		else if(hModbus->huart->RxState == HAL_UART_STATE_READY)
-		{
-			hModbus->modbusUartStructure.RxTail =0;
-			HAL_UART_Receive_IT(hModbus->huart, &(hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail]), 1);
+			Modbus_Emission();
 		}
 
 		// Received character
@@ -161,6 +161,13 @@ void Modbus_Protocal_Worker()
 			__HAL_TIM_ENABLE(hModbus->htim);
 			/*set state*/
 			hModbus->Mstatus= Modbus_state_Reception;
+		}
+
+		//check that if UART RX not start, start receiving
+		if(hModbus->huart->RxState == HAL_UART_STATE_READY)
+		{
+			hModbus->modbusUartStructure.RxTail =0;
+			HAL_UART_Receive_IT(hModbus->huart, &(hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail]), 1);
 		}
 		break;
 	case Modbus_state_Reception:
@@ -201,13 +208,13 @@ void Modbus_Protocal_Worker()
 			&& CalculateCRC.U8[1] == hModbus->modbusUartStructure.MessageBufferRx[hModbus->modbusUartStructure.RxTail -1]))
 			{
 				// communication unsuccessful
+				hModbus->RecvStatus = Modbus_RecvFrame_FrameError;
 				break;
 			}
 
 			//check Slave Address
 			if(hModbus->modbusUartStructure.MessageBufferRx[0] != hModbus->slaveAddress)
 				break;
-
 
 			//copy recivced frame
 			memcpy(hModbus->Rxframe,
@@ -217,19 +224,13 @@ void Modbus_Protocal_Worker()
 			//execute command
 			Modbus_frame_response();
 
-
-
-			//add response feedback
-
 		}
 
 		if(hModbus->Flag_T35TimeOut)
 		{
 			hModbus->Mstatus = Modbus_state_Idle;
 			HAL_UART_AbortReceive(hModbus->huart);
-
 		}
-
 		break;
 
 	case Modbus_state_Emission:

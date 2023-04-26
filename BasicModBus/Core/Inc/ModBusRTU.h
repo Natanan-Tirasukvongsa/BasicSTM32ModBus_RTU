@@ -74,7 +74,6 @@ typedef struct _ModbusHandleTypedef
 	uint8_t Flag_T15TimeOut;
 	uint8_t Flag_T35TimeOut;
 	uint8_t Flag_URev;
-	uint8_t Flag_ETx;
 
 
 	modbusRecvFrameStatus RecvStatus;
